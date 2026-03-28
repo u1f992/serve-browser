@@ -1,0 +1,32 @@
+{
+  "name": "serve-browser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint --flag unstable_native_nodejs_ts_config --fix \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "node --test \"test/**/*.test.ts\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "//": [
+    "@types/node: the oldest version supported by Vivliostyle CLI",
+    "typescript-eslint: temporarily install with --legacy-peer-deps (peer typescript <6.0.0)"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.19.37",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.57.2"
+  },
+  "bin": {
+    "serve-browser": "dist/cli.js"
+  }
+}
