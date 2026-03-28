@@ -28,5 +28,8 @@
   },
   "bin": {
     "serve-browser": "dist/cli.js"
+  },
+  "dependencies": {
+    "@puppeteer/browsers": "^2.13.0"
   }
 }
