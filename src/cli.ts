@@ -17,6 +17,7 @@ const {
     port,
     version,
     help,
+    "bind-address": bindAddress,
     "uninstall-outdated-browser": uninstallMaxAge,
   },
   positionals,
@@ -26,6 +27,7 @@ const {
     help: { type: "boolean", short: "h" },
     port: { type: "string", short: "p" },
     tag: { type: "string", short: "t" },
+    "bind-address": { type: "string" },
     "uninstall-outdated-browser": { type: "string" },
     version: { type: "boolean", short: "v" },
   },
@@ -76,6 +78,7 @@ const served = await serveBrowser({
   tag,
   port: port !== undefined ? parseInt(port, 10) : undefined,
   args: positionals,
+  bindAddress,
   handleAbortion: true,
 });
 

@@ -13,6 +13,7 @@ import {
 // @ts-expect-error no type definitions
 import ProgressBar from "progress";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
@@ -48,6 +49,7 @@ export type Options = {
   tag?: string | undefined;
   port?: number | undefined;
   args?: string[] | undefined;
+  bindAddress?: string | undefined;
   handleAbortion?: boolean | undefined;
   onDownloadProgress?:
     | ((downloadedBytes: number, totalBytes: number) => void)
@@ -245,6 +247,7 @@ export async function serveBrowser(options: Options): Promise<ServedBrowser> {
     tag = "latest",
     port = 0,
     args = [],
+    bindAddress,
     handleAbortion = false,
     onDownloadProgress,
   } = options;
@@ -261,7 +264,8 @@ export async function serveBrowser(options: Options): Promise<ServedBrowser> {
     onDownloadProgress,
   );
 
-  const browserArgs = buildBrowserArgs(browserType, port, args);
+  const internalPort = typeof bindAddress === "string" ? 0 : port;
+  const browserArgs = buildBrowserArgs(browserType, internalPort, args);
   const browserProcess: Process = launch({
     executablePath,
     args: browserArgs,
@@ -272,11 +276,38 @@ export async function serveBrowser(options: Options): Promise<ServedBrowser> {
   });
 
   const wsEndpointRegex = getWsEndpointRegex(browserType);
-  const wsEndpoint = await browserProcess.waitForLineOutput(wsEndpointRegex);
+  const rawWsEndpoint = await browserProcess.waitForLineOutput(wsEndpointRegex);
+
+  let wsEndpoint = rawWsEndpoint;
+  let proxyServer: net.Server | undefined;
+
+  if (typeof bindAddress === "string") {
+    const rawUrl = new URL(rawWsEndpoint);
+    const targetHost = rawUrl.hostname;
+    const targetPort = parseInt(rawUrl.port, 10);
+
+    proxyServer = net.createServer((client) => {
+      const target = net.connect(targetPort, targetHost);
+      client.pipe(target);
+      target.pipe(client);
+      client.on("error", () => target.destroy());
+      target.on("error", () => client.destroy());
+    });
+
+    await new Promise<void>((resolve) => {
+      proxyServer!.listen(port, bindAddress, () => resolve());
+    });
+
+    const addr = proxyServer.address() as net.AddressInfo;
+    rawUrl.hostname = addr.address;
+    rawUrl.port = String(addr.port);
+    wsEndpoint = rawUrl.href;
+  }
 
   return {
     wsEndpoint,
     async [Symbol.asyncDispose]() {
+      proxyServer?.close();
       try {
         await browserProcess.close();
       } catch {
